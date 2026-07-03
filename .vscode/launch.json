@@ -1,0 +1,37 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "type": "debugpy",
+            "request": "launch",
+            "name": "Flask: ChurnEngine",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "app.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--port",
+                "5000"
+            ],
+            "jinja": true,
+            "autoStartBrowser": false
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Chrome: ChurnEngine UI",
+            "url": "http://localhost:5000",
+            "webRoot": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Flask + Chrome",
+            "configurations": ["Flask: ChurnEngine", "Chrome: ChurnEngine UI"]
+        }
+    ]
+}

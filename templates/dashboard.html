@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChurnEngine | Manager Analytics Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom Style Sheet -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-dashboard py-3 sticky-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand brand-font fw-bold" href="#">
+                <i class="fa-solid fa-chart-line text-purple me-2"></i>
+                <span>Churn<span class="text-cyan">Engine</span></span>
+                <span class="badge bg-secondary-dark text-white font-monospace ms-2 fs-6" style="font-size: 0.7rem; font-weight: normal; background-color: rgba(255,255,255,0.08);">v1.2-beta</span>
+            </a>
+            <div class="d-flex align-items-center ms-auto">
+                <span class="text-secondary-dark me-3 d-none d-md-inline">
+                    <i class="fa-solid fa-user-shield text-cyan me-1"></i> Active Analyst: <strong class="text-white">{{ user }}</strong>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                    <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid p-4">
+        <!-- Section 1: A/B Testing Telemetry & Impact Metrics -->
+        <div class="row g-4 mb-4">
+            <!-- Recovered Revenue KPI -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card glass-panel dashboard-card glow-purple-border border-0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="kpi-title">Recovered Revenue</span>
+                            <h2 class="kpi-value text-purple font-monospace" id="kpi-recovered-rev">$0.00</h2>
+                            <span class="text-success-neon small fw-bold">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Saved via Win-back
+                            </span>
+                        </div>
+                        <div class="bg-purple-opacity p-3 rounded-3" style="background: rgba(139, 92, 246, 0.1);">
+                            <i class="fa-solid fa-hand-holding-dollar text-purple fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campaign ROI KPI -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card glass-panel dashboard-card glow-cyan-border border-0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="kpi-title">Campaign ROI</span>
+                            <h2 class="kpi-value text-cyan font-monospace" id="kpi-campaign-roi">0.0%</h2>
+                            <span class="text-cyan small fw-bold">
+                                <i class="fa-solid fa-bolt"></i> Net Positive Yield
+                            </span>
+                        </div>
+                        <div class="bg-cyan-opacity p-3 rounded-3" style="background: rgba(6, 182, 212, 0.1);">
+                            <i class="fa-solid fa-circle-nodes text-cyan fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Churn Rate Reduction KPI -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card glass-panel dashboard-card glow-purple-border border-0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="kpi-title">Churn Uplift (A/B)</span>
+                            <h2 class="kpi-value text-white font-monospace" id="kpi-uplift">-6.3%</h2>
+                            <span class="text-success-neon small fw-bold">
+                                <i class="fa-solid fa-compress"></i> Churn rate decreased
+                            </span>
+                        </div>
+                        <div class="bg-purple-opacity p-3 rounded-3" style="background: rgba(139, 92, 246, 0.1);">
+                            <i class="fa-solid fa-shield-halved text-purple fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Users Monitored -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card glass-panel dashboard-card glow-cyan-border border-0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="kpi-title">Campaign Groups</span>
+                            <h2 class="kpi-value text-cyan font-monospace" id="kpi-campaign-groups">10,000</h2>
+                            <span class="text-secondary-dark small">5k Control vs 5k Treatment</span>
+                        </div>
+                        <div class="bg-cyan-opacity p-3 rounded-3" style="background: rgba(6, 182, 212, 0.1);">
+                            <i class="fa-solid fa-users text-cyan fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Section 2: Behavioral Churn Predictor (LightGBM/RF outputs table) -->
+            <div class="col-lg-8">
+                <div class="card glass-panel h-100 p-4 border-0">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4 class="brand-font fw-semibold mb-1 text-white">
+                                <i class="fa-solid fa-brain text-purple me-2"></i>
+                                Behavioral Churn Predictor
+                            </h4>
+                            <p class="text-secondary-dark mb-0" style="font-size: 0.85rem;">Real-time inference rankings powered by LightGBM Classifier model</p>
+                        </div>
+                        <span class="badge bg-purple text-white px-3 py-2 font-monospace" style="background: var(--primary-neon);">Supervised Inference</span>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table custom-table" id="churn-table">
+                            <thead>
+                                <tr>
+                                    <th>Customer ID</th>
+                                    <th>Customer Name</th>
+                                    <th>K-Means Cohort</th>
+                                    <th style="width: 250px;">Churn Probability</th>
+                                    <th>Classification</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically via AJAX -->
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-secondary-dark">
+                                        <i class="fa-solid fa-circle-notch fa-spin me-2"></i> Loading predictive pipeline models...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: RFM Dynamic Profiler detail panel -->
+            <div class="col-lg-4">
+                <div class="card glass-panel h-100 p-4 border-0" id="rfm-card-container">
+                    <h4 class="brand-font fw-semibold mb-3 text-white">
+                        <i class="fa-solid fa-magnifying-glass-chart text-cyan me-2"></i>
+                        RFM Dynamic Profiler
+                    </h4>
+                    <p class="text-secondary-dark mb-4" style="font-size: 0.85rem;">Click on any customer in the classification matrix to extract full transactional features.</p>
+                    
+                    <div id="rfm-detail-content" class="text-center py-5 text-secondary-dark">
+                        <i class="fa-solid fa-arrow-pointer fs-1 text-secondary-dark opacity-25 mb-3"></i>
+                        <p>No customer profile selected.<br>Select a record from the predictor table.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Micro-Segmentation Cluster Matrix (K-Means Visual) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card glass-panel p-4 border-0">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4 class="brand-font fw-semibold mb-1 text-white">
+                                <i class="fa-solid fa-shapes text-cyan me-2"></i>
+                                Micro-Segmentation Cohort Grid
+                            </h4>
+                            <p class="text-secondary-dark mb-0" style="font-size: 0.85rem;">Unsupervised K-Means clustering boundary visualization (Frequency vs. Monetary Dimension)</p>
+                        </div>
+                        <span class="badge bg-dark text-cyan border border-info px-3 py-2 font-monospace">Unsupervised K-Means (K=4)</span>
+                    </div>
+
+                    <div style="position: relative; height: 350px;">
+                        <canvas id="clusterChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Live Activity Feed + Recent Orders -->
+        <div class="row g-4 mb-4">
+
+            <!-- Live Activity Feed -->
+            <div class="col-lg-5">
+                <div class="card glass-panel h-100 p-4 border-0">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4 class="brand-font fw-semibold mb-1 text-white">
+                                <span class="live-dot"></span>Live Activity Feed
+                            </h4>
+                            <p class="text-secondary-dark mb-0" style="font-size: 0.82rem;">
+                                Real-time customer behavioural events · Refreshes every 5s
+                            </p>
+                        </div>
+                        <span class="badge px-3 py-2 font-monospace" 
+                              style="background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.25);">
+                            Streaming
+                        </span>
+                    </div>
+
+                    <div class="activity-feed-scroll" id="activity-feed-list">
+                        <!-- Populated by dashboard.js polling -->
+                        <div class="text-center py-4 text-secondary-dark" id="activity-feed-empty">
+                            <i class="fa-solid fa-satellite-dish fa-spin me-2"></i>
+                            Awaiting live events from storefront...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="col-lg-7">
+                <div class="card glass-panel h-100 p-4 border-0">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4 class="brand-font fw-semibold mb-1 text-white">
+                                <i class="fa-solid fa-receipt text-purple me-2"></i>
+                                Recent Orders
+                            </h4>
+                            <p class="text-secondary-dark mb-0" style="font-size: 0.82rem;">
+                                Live order pipeline · Total: <strong class="text-white font-monospace" id="kpi-total-orders">0</strong> orders ·
+                                Revenue: <strong class="text-white font-monospace" id="kpi-total-rev">$0.00</strong>
+                            </p>
+                        </div>
+                        <span class="badge px-3 py-2 font-monospace"
+                              style="background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);">
+                            All Channels
+                        </span>
+                    </div>
+
+                    <div class="orders-scroll">
+                        <table class="table custom-table" id="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th class="text-center">Items</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table-body">
+                                <tr id="orders-empty-row">
+                                    <td colspan="6" class="text-center py-4 text-secondary-dark">
+                                        <i class="fa-solid fa-circle-notch fa-spin me-2"></i>
+                                        No orders yet. Place orders via the storefront to see them here.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Footer -->
+    <footer class="text-center py-3 mt-2" style="border-top: 1px solid rgba(255,255,255,0.05); color: #475569; font-size: 0.78rem;">
+        <span class="font-monospace">ChurnEngine v1.2-beta &copy; 2026 &mdash; B.Tech Final Year Project | Patil &middot; Maske &middot; Gurav</span>
+    </footer>
+
+    <!-- jQuery (load before Bootstrap-dependent scripts) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap 5 Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js v3 for stable scatter interaction API -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Dashboard Controller -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
+

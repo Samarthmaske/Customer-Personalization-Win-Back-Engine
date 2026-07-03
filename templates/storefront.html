@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlowStyle | Premium E-Commerce</title>
+    <meta name="description" content="GlowStyle – Premium fashion storefront powered by ChurnEngine AI personalisation.">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body class="storefront-body" data-churn-risk="{{ churn_risk }}">
+
+    <!-- =====================================================================
+         TOAST NOTIFICATION (bottom-right)
+    ====================================================================== -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+        <div id="cart-toast" class="toast align-items-center text-white border-0" role="alert"
+             style="background:linear-gradient(135deg,#10b981,#047857);border-radius:12px;box-shadow:0 4px 20px rgba(16,185,129,0.4);">
+            <div class="d-flex">
+                <div class="toast-body fw-semibold">
+                    <i class="fa-solid fa-bag-shopping me-2"></i>
+                    <span id="toast-message">Item added to cart!</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         ORDER SUCCESS MODAL
+    ====================================================================== -->
+    <div class="modal fade" id="orderSuccessModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0" style="border-radius:20px;overflow:hidden;">
+                <div class="modal-body text-center p-5" style="background:linear-gradient(135deg,#0f172a,#1e1b4b);">
+                    <div class="mb-4">
+                        <div class="order-success-icon mx-auto mb-3">
+                            <i class="fa-solid fa-circle-check text-white" style="font-size:3.5rem;"></i>
+                        </div>
+                        <h3 class="brand-font fw-bold text-white mb-1">Order Confirmed!</h3>
+                        <p class="text-secondary-dark mb-3">Your order has been placed successfully.</p>
+                        <div class="d-inline-block px-4 py-2 rounded-3 font-monospace fw-bold text-white mb-3"
+                             style="background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);font-size:1.1rem;">
+                            <span id="modal-order-id">ORD-0000</span>
+                        </div>
+                        <p class="text-secondary-dark small">Total: <strong class="text-white" id="modal-order-total">$0.00</strong></p>
+                    </div>
+                    <button class="btn btn-glow-purple px-5" data-bs-dismiss="modal">Continue Shopping</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         CART OFFCANVAS SIDEBAR
+    ====================================================================== -->
+    <div class="offcanvas offcanvas-end cart-offcanvas" tabindex="-1" id="cartOffcanvas" aria-labelledby="cartOffcanvasLabel">
+        <!-- Header -->
+        <div class="offcanvas-header cart-offcanvas-header">
+            <h5 class="offcanvas-title brand-font fw-bold mb-0" id="cartOffcanvasLabel">
+                <i class="fa-solid fa-cart-shopping text-purple me-2"></i> Your Cart
+                <span class="badge bg-dark ms-2 font-monospace" id="cart-offcanvas-badge">0</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+
+        <!-- Body -->
+        <div class="offcanvas-body p-0 d-flex flex-column">
+
+            <!-- Empty State -->
+            <div id="cart-empty-state" class="text-center py-5 px-4 flex-grow-1 d-flex flex-column align-items-center justify-content-center">
+                <i class="fa-solid fa-bag-shopping mb-3" style="font-size:3rem;color:#cbd5e1;"></i>
+                <p class="text-muted mb-4">Your cart is empty.<br>Add some products to get started!</p>
+                <button class="btn btn-storefront px-4" data-bs-dismiss="offcanvas">Browse Products</button>
+                <button class="btn btn-link text-muted btn-sm mt-3" id="view-order-history-btn">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> View Order History
+                </button>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="cart-items-wrapper" class="flex-grow-1 overflow-auto" style="display:none;">
+                <div id="cart-items-list" class="p-3"></div>
+            </div>
+
+            <!-- Order History (toggle) -->
+            <div id="order-history-panel" class="p-3 border-top" style="display:none;background:#f8fafc;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fw-semibold text-dark small text-uppercase" style="letter-spacing:0.06em;">
+                        <i class="fa-solid fa-clock-rotate-left text-purple me-1"></i> Order History
+                    </span>
+                    <button class="btn btn-link btn-sm text-muted p-0" id="close-order-history-btn">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div id="order-history-list" class="order-history-scroll"></div>
+                <div id="order-history-empty" class="text-center text-muted small py-3" style="display:none;">
+                    No orders yet.
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer (cart total + place order) -->
+        <div id="cart-footer" class="cart-offcanvas-footer" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="fw-semibold text-dark">Subtotal (<span id="cart-item-count">0</span> items)</span>
+                <span class="font-monospace fw-bold fs-5 text-dark" id="cart-total-display">$0.00</span>
+            </div>
+            <button class="btn btn-glow-purple w-100 py-2 fw-semibold mb-2" id="place-order-btn">
+                <i class="fa-solid fa-lock me-2"></i> Place Order Securely
+            </button>
+            <button class="btn btn-outline-secondary w-100 btn-sm" data-bs-dismiss="offcanvas">
+                Continue Shopping
+            </button>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         NAVBAR
+    ====================================================================== -->
+    <nav class="navbar navbar-expand-lg navbar-light navbar-storefront py-3 sticky-top">
+        <div class="container px-4">
+            <a class="navbar-brand brand-font fw-bold text-dark d-flex align-items-center" href="#">
+                <i class="fa-solid fa-bag-shopping text-purple me-2"></i>
+                <span>Glow<span class="text-purple">Style</span></span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#store-nav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="store-nav">
+                <div class="d-flex align-items-center ms-auto gap-2">
+                    <span class="text-muted me-2">
+                        <i class="fa-solid fa-circle-user text-purple me-1"></i>
+                        Welcome, <strong class="text-dark">{{ customer_name }}</strong>
+                    </span>
+                    <!-- Cart Toggle Button -->
+                    <button class="btn btn-outline-dark position-relative rounded-pill px-3"
+                            data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas">
+                        <i class="fa-solid fa-cart-shopping me-1"></i> Cart
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cart-count">0</span>
+                    </button>
+                    <a href="{{ url_for('logout') }}" class="btn btn-dark btn-sm rounded-pill px-3">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- =====================================================================
+         MAIN CONTENT
+    ====================================================================== -->
+    <div class="container py-4">
+
+        <!-- Section 1: Prescriptive Win-Back Banner -->
+        <div id="retention-banner-container" class="mb-5" style="display:none;">
+            <div class="winback-banner p-4 p-md-5">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <span class="badge bg-danger mb-2 px-3 py-2 font-monospace" style="font-size:0.75rem;">Special Member Reward</span>
+                        <h2 class="brand-font fw-bold text-white mb-2" id="banner-title">Loading tailored offer...</h2>
+                        <p class="mb-4 text-white-50 fs-5" id="banner-text">Evaluating retention campaign rules...</p>
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <span class="bg-white text-dark font-monospace fw-bold px-3 py-2 rounded-2"
+                                  style="font-size:1.2rem;border:2px dashed #cbd5e1;" id="coupon-display">-----</span>
+                            <button class="btn btn-glow-purple px-4 py-2" id="banner-action-btn">Apply Offer</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center d-none d-md-block">
+                        <i class="fa-solid fa-gift text-purple animate-pulse" style="font-size:7rem;opacity:0.85;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2 & 3: Product Grid + Spin Wheel -->
+        <div class="row g-4">
+
+            <!-- Product Catalog Grid -->
+            <div class="col-lg-8">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="brand-font fw-bold text-dark mb-0">Trending Collection</h3>
+                    <span class="text-muted">Showing 4 premium products</span>
+                </div>
+                <div class="row g-4">
+
+                    <!-- Product 1 -->
+                    <div class="col-md-6">
+                        <div class="product-card pulse-on-hover">
+                            <div class="product-img-wrapper">
+                                <img src="{{ url_for('static', filename='img/product_jacket.png') }}" alt="Eco-Cotton Utility Jacket">
+                                <div class="product-overlay">
+                                    <button class="btn btn-glow-purple btn-sm btn-quick-add" data-product-id="PROD-001" data-name="Eco-Cotton Utility Jacket">
+                                        <i class="fa-solid fa-plus me-1"></i> Quick Add
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3">
+                                <span class="text-muted small">Apparel</span>
+                                <h5 class="brand-font fw-semibold text-dark my-1">Eco-Cotton Utility Jacket</h5>
+                                <div class="product-rating mb-2">
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star-half-stroke text-warning"></i>
+                                    <span class="text-muted small ms-1">4.8 (124)</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="font-monospace fw-bold fs-5 text-dark">$129.00</span>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm px-2 btn-wishlist" title="Wishlist">
+                                            <i class="fa-regular fa-heart"></i>
+                                        </button>
+                                        <button class="btn btn-storefront btn-sm px-3 btn-add-cart"
+                                                data-product-id="PROD-001" data-name="Eco-Cotton Utility Jacket">
+                                            Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product 2 -->
+                    <div class="col-md-6">
+                        <div class="product-card pulse-on-hover">
+                            <div class="product-img-wrapper">
+                                <img src="{{ url_for('static', filename='img/product_backpack.png') }}" alt="Minimalist Canvas Backpack">
+                                <div class="product-overlay">
+                                    <button class="btn btn-glow-purple btn-sm btn-quick-add" data-product-id="PROD-002" data-name="Minimalist Canvas Backpack">
+                                        <i class="fa-solid fa-plus me-1"></i> Quick Add
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3">
+                                <span class="text-muted small">Accessories</span>
+                                <h5 class="brand-font fw-semibold text-dark my-1">Minimalist Canvas Backpack</h5>
+                                <div class="product-rating mb-2">
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-regular fa-star text-warning"></i>
+                                    <span class="text-muted small ms-1">4.5 (89)</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="font-monospace fw-bold fs-5 text-dark">$85.00</span>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm px-2 btn-wishlist" title="Wishlist">
+                                            <i class="fa-regular fa-heart"></i>
+                                        </button>
+                                        <button class="btn btn-storefront btn-sm px-3 btn-add-cart"
+                                                data-product-id="PROD-002" data-name="Minimalist Canvas Backpack">
+                                            Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product 3 -->
+                    <div class="col-md-6">
+                        <div class="product-card pulse-on-hover">
+                            <div class="product-img-wrapper">
+                                <img src="{{ url_for('static', filename='img/product_shirt.png') }}" alt="Linen Resort Collar Shirt">
+                                <div class="product-overlay">
+                                    <button class="btn btn-glow-purple btn-sm btn-quick-add" data-product-id="PROD-003" data-name="Linen Resort Collar Shirt">
+                                        <i class="fa-solid fa-plus me-1"></i> Quick Add
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3">
+                                <span class="text-muted small">Apparel</span>
+                                <h5 class="brand-font fw-semibold text-dark my-1">Linen Resort Collar Shirt</h5>
+                                <div class="product-rating mb-2">
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star-half-stroke text-warning"></i>
+                                    <span class="text-muted small ms-1">4.6 (201)</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="font-monospace fw-bold fs-5 text-dark">$65.00</span>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm px-2 btn-wishlist" title="Wishlist">
+                                            <i class="fa-regular fa-heart"></i>
+                                        </button>
+                                        <button class="btn btn-storefront btn-sm px-3 btn-add-cart"
+                                                data-product-id="PROD-003" data-name="Linen Resort Collar Shirt">
+                                            Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product 4 -->
+                    <div class="col-md-6">
+                        <div class="product-card pulse-on-hover">
+                            <div class="product-img-wrapper">
+                                <img src="{{ url_for('static', filename='img/product_sneakers.png') }}" alt="Aero-Breathe Knit Sneakers">
+                                <div class="product-overlay">
+                                    <button class="btn btn-glow-purple btn-sm btn-quick-add" data-product-id="PROD-004" data-name="Aero-Breathe Knit Sneakers">
+                                        <i class="fa-solid fa-plus me-1"></i> Quick Add
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3">
+                                <span class="text-muted small">Footwear</span>
+                                <h5 class="brand-font fw-semibold text-dark my-1">Aero-Breathe Knit Sneakers</h5>
+                                <div class="product-rating mb-2">
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <i class="fa-solid fa-star text-warning"></i>
+                                    <span class="text-muted small ms-1">4.9 (312)</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="font-monospace fw-bold fs-5 text-dark">$145.00</span>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm px-2 btn-wishlist" title="Wishlist">
+                                            <i class="fa-regular fa-heart"></i>
+                                        </button>
+                                        <button class="btn btn-storefront btn-sm px-3 btn-add-cart"
+                                                data-product-id="PROD-004" data-name="Aero-Breathe Knit Sneakers">
+                                            Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Spin Wheel Retention Campaign -->
+            <div class="col-lg-4">
+                <div class="card glass-panel-light p-4 border-0 text-center shadow-sm">
+                    <h4 class="brand-font fw-bold text-dark mb-2">🎁 Spin the Wheel!</h4>
+                    <p class="text-muted mb-4 small">Win-back Campaign: High Churn-Risk customers qualify for VIP rewards to unlock maximum checkout discounts!</p>
+                    <div class="wheel-container mb-4">
+                        <div class="wheel-pointer">
+                            <svg viewBox="0 0 30 40" width="30" height="40">
+                                <polygon points="15,40 0,0 30,0" />
+                            </svg>
+                        </div>
+                        <div class="wheel-outer" id="spin-wheel-element">
+                            <canvas id="wheel-canvas" class="wheel-inner-canvas" width="316" height="316"></canvas>
+                            <div class="wheel-center-pin" id="spin-button">SPIN</div>
+                        </div>
+                    </div>
+                    <div id="spin-result-container" style="display:none;">
+                        <div class="alert alert-success spin-success-alert p-3" role="alert">
+                            <h6 class="alert-heading fw-bold mb-1"><i class="fa-solid fa-trophy me-1"></i> Winner!</h6>
+                            <p class="mb-2 small" id="spin-reward-text">You won 30% off!</p>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <span class="badge bg-dark font-monospace" style="font-size:0.9rem;" id="spin-coupon-code">SPIN30</span>
+                                <button class="btn btn-light btn-xs py-1 px-2 text-dark btn-copy-coupon" style="font-size:0.75rem;">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =====================================================================
+             Section 4: Recommended Products for You
+        ====================================================================== -->
+        <div class="recommendations-section mt-5 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="brand-font fw-bold text-dark mb-1" id="rec-section-title">Recommended for You</h3>
+                    <p class="text-muted small mb-0" id="rec-section-subtitle">Personalised by ChurnEngine AI</p>
+                </div>
+                <span class="ai-picks-badge">
+                    <i class="fa-solid fa-brain me-1"></i> AI Picks
+                </span>
+            </div>
+
+            <!-- Loading skeleton -->
+            <div id="rec-loading" class="row g-4">
+                <div class="col-md-3"><div class="rec-skeleton"></div></div>
+                <div class="col-md-3"><div class="rec-skeleton"></div></div>
+                <div class="col-md-3"><div class="rec-skeleton"></div></div>
+                <div class="col-md-3"><div class="rec-skeleton"></div></div>
+            </div>
+
+            <!-- Recommendations grid (populated by JS) -->
+            <div id="recommendations-grid" class="row g-4" style="display:none;"></div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 mt-4" style="border-top:1px solid rgba(0,0,0,0.05);color:#94a3b8;font-size:0.82rem;">
+        <span class="font-monospace">GlowStyle &copy; 2026 &mdash; Powered by <strong>ChurnEngine</strong> | B.Tech Final Year Project | Patil &middot; Maske &middot; Gurav</span>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Storefront Logic -->
+    <script src="{{ url_for('static', filename='js/storefront.js') }}"></script>
+</body>
+</html>
